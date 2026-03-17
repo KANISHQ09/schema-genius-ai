@@ -1,6 +1,56 @@
 // src/hooks/useSchemaChat.ts
 import { useState, useCallback } from "react";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { ChatMessage, SchemaResult } from "@/types/schema";
+
+// Initialize the Gemini AI client using Vite's import.meta.env
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+
+// Define the exact JSON schema we want the AI to return
+const responseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    collections: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          name: { type: SchemaType.STRING },
+          schema: { type: SchemaType.STRING },
+          mongoose_model: { type: SchemaType.STRING },
+        },
+        required: ["name", "schema", "mongoose_model"],
+      },
+    },
+    explanations: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING },
+          decision: { type: SchemaType.STRING },
+          reasoning: { type: SchemaType.STRING },
+          alternatives: { type: SchemaType.STRING },
+        },
+        required: ["title", "decision", "reasoning"],
+      },
+    },
+    indexes: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          collection: { type: SchemaType.STRING },
+          fields: { type: SchemaType.STRING },
+          type: { type: SchemaType.STRING },
+          reasoning: { type: SchemaType.STRING },
+        },
+        required: ["collection", "fields", "type", "reasoning"],
+      },
+    },
+  },
+  required: ["collections", "explanations", "indexes"],
+};
 
 export function useSchemaChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -9,40 +59,46 @@ export function useSchemaChat() {
 
   const sendMessage = useCallback(async (content: string) => {
     const userMsg: ChatMessage = { role: "user", content };
-    // Keep track of the updated messages array to send context if needed
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
-      // Call your AI Edge Function
-      const response = await fetch('/api/generate-schema', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: content }),
+      // Initialize model with JSON response type enforced
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate schema');
-      }
+      const systemInstruction = `
+        You are an expert MongoDB architect. 
+        Analyze the user's application requirements and generate a highly optimized database schema. 
+        Ensure Mongoose models use modern syntax and reference relationships properly.
+      `;
 
-      // The AI should return a JSON object that matches the SchemaResult type
-      const result: SchemaResult = await response.json();
-      setSchemaResult(result);
+      // Call the AI
+      const result = await model.generateContent(`${systemInstruction}\n\nUser Requirements: ${content}`);
+      const responseText = result.response.text();
+      
+      // Parse the JSON response
+      const parsedData: SchemaResult = JSON.parse(responseText);
+      setSchemaResult(parsedData);
 
       const assistantMsg: ChatMessage = {
         role: "assistant",
-        content: `I've analyzed your requirements and generated an optimized MongoDB schema with **${result.collections.length} collections**, **${result.explanations.length} design decisions**, and **${result.indexes.length} index recommendations**.\n\nCheck the tabs on the right to explore:\n- **Schema** — Copyable collection structures and Mongoose models\n- **Explanation** — Reasoning behind each design decision\n- **Indexes** — Recommended indexes for your query patterns\n\nFeel free to refine your requirements or ask follow-up questions!`,
+        content: `I've analyzed your requirements and generated an optimized MongoDB schema with **${parsedData.collections.length} collections**, **${parsedData.explanations.length} design decisions**, and **${parsedData.indexes.length} index recommendations**.\n\nCheck the tabs on the right to explore:\n- **Schema** — Copyable collection structures and Mongoose models\n- **Explanation** — Reasoning behind each design decision\n- **Indexes** — Recommended indexes for your query patterns\n\nFeel free to refine your requirements or ask follow-up questions!`,
       };
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages((prev) => [...prev, assistantMsg]);
+      
     } catch (error) {
       console.error("AI Generation Error:", error);
       const errorMsg: ChatMessage = {
         role: "assistant",
-        content: "Sorry, I encountered an error while generating your schema. Please try again or refine your prompt.",
+        content: "Sorry, I encountered an error while generating your schema. Please ensure your API key is correct and try again.",
       };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
