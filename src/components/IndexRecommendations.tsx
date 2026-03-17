@@ -45,9 +45,11 @@ export function IndexRecommendations({ indexes }: IndexRecommendationsProps) {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-secondary/50 px-3 py-2 font-mono text-xs text-foreground">
-                  {command}
-                </code>
+                <div className="flex-1 overflow-x-auto rounded bg-secondary/50 px-3 py-2">
+                  <code className="font-mono text-xs text-foreground whitespace-nowrap">
+                    {command}
+                  </code>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"

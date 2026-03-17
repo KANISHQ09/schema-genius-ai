@@ -47,11 +47,12 @@ export default function Workspace() {
         <span className="text-xs text-muted-foreground font-mono">Schema Workspace</span>
       </header>
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: Chat Panel */}
-        <div className="flex w-full flex-col border-r border-border md:w-[420px] lg:w-[480px]">
-          <div className="border-b border-border px-4 py-2.5">
+      {/* Main content: Responsive Stack (Mobile) / Side-by-Side (Desktop) */}
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
+        
+        {/* Top/Left: Chat Panel */}
+        <div className="flex h-[45dvh] shrink-0 w-full flex-col border-b border-border md:h-auto md:w-[420px] lg:w-[480px] md:border-b-0 md:border-r">
+          <div className="border-b border-border px-4 py-2.5 shrink-0">
             <h2 className="text-sm font-medium text-foreground">Describe Your Application</h2>
             <p className="text-xs text-muted-foreground">Tell me about your entities, relationships, and query patterns</p>
           </div>
@@ -82,7 +83,7 @@ export default function Workspace() {
             </div>
           </ScrollArea>
 
-          <form onSubmit={handleSubmit} className="border-t border-border p-4">
+          <form onSubmit={handleSubmit} className="border-t border-border p-4 shrink-0 bg-background">
             <div className="flex gap-2">
               <Textarea
                 value={input}
@@ -104,10 +105,10 @@ export default function Workspace() {
           </form>
         </div>
 
-        {/* Right: Output Panel */}
-        <div className="hidden flex-1 flex-col md:flex">
+        {/* Bottom/Right: Output Panel */}
+        <div className="flex flex-1 flex-col overflow-hidden bg-muted/10 md:bg-transparent">
           {!schemaResult ? (
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-1 items-center justify-center p-6">
               <div className="text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/5 text-primary">
                   <Database className="h-8 w-8" />
@@ -119,8 +120,8 @@ export default function Workspace() {
               </div>
             </div>
           ) : (
-            <Tabs defaultValue="schema" className="flex flex-1 flex-col">
-              <div className="border-b border-border px-4">
+            <Tabs defaultValue="schema" className="flex flex-1 flex-col overflow-hidden">
+              <div className="border-b border-border px-4 shrink-0 bg-background">
                 <TabsList className="h-10 bg-transparent">
                   <TabsTrigger value="schema" className="data-[state=active]:bg-secondary">
                     Schema
@@ -134,15 +135,15 @@ export default function Workspace() {
                 </TabsList>
               </div>
 
-              <TabsContent value="schema" className="mt-0 flex-1 overflow-auto p-4">
+              <TabsContent value="schema" className="mt-0 flex-1 overflow-y-auto p-4">
                 <SchemaOutput collections={schemaResult.collections} />
               </TabsContent>
 
-              <TabsContent value="explanation" className="mt-0 flex-1 overflow-auto p-4">
+              <TabsContent value="explanation" className="mt-0 flex-1 overflow-y-auto p-4">
                 <ExplanationCards explanations={schemaResult.explanations} />
               </TabsContent>
 
-              <TabsContent value="indexes" className="mt-0 flex-1 overflow-auto p-4">
+              <TabsContent value="indexes" className="mt-0 flex-1 overflow-y-auto p-4">
                 <IndexRecommendations indexes={schemaResult.indexes} />
               </TabsContent>
             </Tabs>

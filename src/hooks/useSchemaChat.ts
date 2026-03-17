@@ -76,6 +76,12 @@ export function useSchemaChat() {
         You are an expert MongoDB architect. 
         Analyze the user's application requirements and generate a highly optimized database schema. 
         Ensure Mongoose models use modern syntax and reference relationships properly.
+        
+        CRITICAL FORMATTING RULE: 
+        The 'mongoose_model' string MUST be beautifully formatted, multi-line JavaScript code. 
+        Use literal '\\n' characters for line breaks and 2 spaces for indentation. 
+        Separate imports, schema definitions, and exports with blank lines. 
+        DO NOT return a minified or single-line string.
       `;
 
       // Call the AI
